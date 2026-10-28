@@ -48,7 +48,7 @@ public class Program
         {
             try
             {
-                await context.Channel.SendMessageAsync($"❌ Error: {result.Error}");
+                await context.Channel.SendMessageAsync($"❌ Error: {result.Error}: {result.ErrorReason}");
             }
             catch { }
         }
