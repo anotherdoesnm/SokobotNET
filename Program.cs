@@ -12,11 +12,15 @@ public class Program
 
         var token = Environment.GetEnvironmentVariable("FLUXER_TOKEN")
             ?? throw new InvalidOperationException("FLUXER_TOKEN not found");
-        var instance = Environment.GetEnvironmentVariable("FLUXER_INSTANCE")
-            ?? "https://fluxer.doesnmlab.xyz/api";
+        // Unset means "whatever this build of Fluxer.Net talks to by default" (fluxer.app);
+        // self-hosted instances pass their API root.
+        var instance = Environment.GetEnvironmentVariable("FLUXER_INSTANCE");
 
         var client = new FluxerClient($"Bot {token}");
-        await client.LoginAsync(instance);
+        if (string.IsNullOrWhiteSpace(instance))
+            await client.LoginAsync();
+        else
+            await client.LoginAsync(instance);
         await client.StartAsync();
 
         var commands = new CommandService();

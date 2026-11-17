@@ -1,0 +1,6 @@
+.git
+bin
+obj
+SokobotNET.Tests/bin
+SokobotNET.Tests/obj
+**/*.user
