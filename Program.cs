@@ -18,6 +18,12 @@ public class Program
         // self-hosted instances pass their API root.
         var instance = Environment.GetEnvironmentVariable("FLUXER_INSTANCE");
 
+        // State first: a broken database should fail loudly before we announce ourselves to
+        // the gateway, and it makes the file path visible in the log.
+        var storage = new Storage();
+        PrefixStore.Initialize(storage);
+        Console.WriteLine($"[sokobot] state file: {storage.FilePath}");
+
         var client = new FluxerClient($"Bot {token}");
         if (string.IsNullOrWhiteSpace(instance))
             await client.LoginAsync();
@@ -25,11 +31,6 @@ public class Program
             await client.LoginAsync(instance);
 
         await client.StartAsync();
-
-        // A prefix has to survive a restart, so it lives in a SQLite file.
-        var storage = new Storage();
-        PrefixStore.Initialize(storage);
-        Console.WriteLine($"[sokobot] state file: {storage.FilePath}");
 
         var commands = new CommandService();
         await commands.AddModulesAsync(Assembly.GetExecutingAssembly());
