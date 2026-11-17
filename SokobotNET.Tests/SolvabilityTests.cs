@@ -35,6 +35,38 @@ public class SolvabilityTests
         Assert.DoesNotContain(boxes, home.Contains);
     }
 
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(3)]
+    public void EarlyLevels_HaveNoInteriorWalls(int level)
+    {
+        var (walls, _, _, _) = new Game(level).Snapshot();
+        int border = 2 * walls.GetLength(0) + 2 * (walls.GetLength(1) - 2);
+        Assert.Equal(border, CountWalls(walls));
+    }
+
+    [Theory]
+    [InlineData(4)]
+    [InlineData(6)]
+    [InlineData(10)]
+    public void LaterLevels_HaveInteriorWalls(int level)
+    {
+        var (walls, _, _, _) = new Game(level).Snapshot();
+        int border = 2 * walls.GetLength(0) + 2 * (walls.GetLength(1) - 2);
+        Assert.True(CountWalls(walls) > border, $"level {level} still has an open field");
+    }
+
+    private static int CountWalls(bool[,] walls)
+    {
+        int count = 0;
+        for (int x = 0; x < walls.GetLength(0); x++)
+            for (int y = 0; y < walls.GetLength(1); y++)
+                if (walls[x, y]) count++;
+        return count;
+    }
+
     private static bool Solve(Game game, out int visited)
     {
         var (walls, boxes, targets, player) = game.Snapshot();

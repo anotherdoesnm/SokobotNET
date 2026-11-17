@@ -150,15 +150,26 @@ public class Game
         }
 
         int boxCount = Math.Min(1 + Level / 3, 6);
-        if (floor.Count <= boxCount + 1) boxCount = Math.Max(1, floor.Count - 2);
 
-        foreach (var cell in floor.Take(boxCount))
+        // Interior walls from level 4: an open box is a boring box. They go in before any
+        // box is dragged, so a level that survives the scramble is still solvable — a wall
+        // only ever removes moves, and generation never makes one it cannot undo.
+        int innerWalls = Level >= 4 ? Math.Min((Level - 2) / 2, Math.Max(0, size - 3)) : 0;
+        innerWalls = Math.Min(innerWalls, Math.Max(0, floor.Count - boxCount - 2));
+
+        for (int i = 0; i < innerWalls; i++)
+            _grid[floor[i].x, floor[i].y] = Cell.Wall;
+
+        var free = floor.Skip(innerWalls).ToList();
+        if (free.Count <= boxCount + 1) boxCount = Math.Max(1, free.Count - 2);
+
+        foreach (var cell in free.Take(boxCount))
         {
             _boxes.Add(cell);
             _targets.Add(cell);
             _grid[cell.x, cell.y] = Cell.Target;
         }
-        _player = floor.Skip(boxCount).First();
+        _player = free.Skip(boxCount).First();
     }
 
     /// <summary>Drag boxes around until nothing is left on a target, if we can.</summary>
