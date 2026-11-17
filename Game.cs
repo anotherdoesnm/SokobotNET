@@ -29,24 +29,44 @@ public class Game
     /// Attempt to move the player by (dx, dy). Returns true if the player actually moved;
     /// <paramref name="won"/> is set when the move completed the level.
     /// </summary>
+    /// <summary>Why the last move was refused, so the bot can say something useful.</summary>
+    public enum BlockReason
+    {
+        None,
+        Wall,
+        BoxBehind,
+    }
+
+    public BlockReason LastBlock { get; private set; } = BlockReason.None;
+
     public bool TryMove(int dx, int dy, out bool won)
     {
         won = false;
+        LastBlock = BlockReason.None;
         if (Finished) return false;
 
         (int x, int y) next = (_player.x + dx, _player.y + dy);
         if (!IsInside(next) || _grid[next.x, next.y] == Cell.Wall)
+        {
+            LastBlock = BlockReason.Wall;
             return false;
+        }
 
         bool pushing = _boxes.Contains(next);
         if (pushing)
         {
             (int x, int y) beyond = (next.x + dx, next.y + dy);
-            bool blocked = !IsInside(beyond)
-                || _grid[beyond.x, beyond.y] == Cell.Wall
-                || _boxes.Contains(beyond);
-            if (blocked)
+            if (!IsInside(beyond) || _grid[beyond.x, beyond.y] == Cell.Wall)
+            {
+                LastBlock = BlockReason.Wall;
                 return false;
+            }
+            if (_boxes.Contains(beyond))
+            {
+                // Two boxes in a row: only one can be pushed at a time.
+                LastBlock = BlockReason.BoxBehind;
+                return false;
+            }
 
             _boxes.Remove(next);
             _boxes.Add(beyond);

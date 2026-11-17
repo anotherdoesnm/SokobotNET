@@ -93,6 +93,39 @@ public class GameTests
         }
     }
 
+
+    [Fact]
+    public void MovingIntoAWall_IsReportedAsAWall()
+    {
+        var game = new Game();
+        var board = Board.Parse(game);
+        var (px, py) = board.Find(Board.Player);
+
+        // walk to the top border, then push against it
+        while (board.Cell(px, py - 1) != Board.Wall)
+        {
+            if (!game.TryMove(0, -1, out _)) break;
+            board = Board.Parse(game);
+            (px, py) = board.Find(Board.Player);
+        }
+
+        Assert.False(game.TryMove(0, -1, out _));
+        Assert.Equal(Game.BlockReason.Wall, game.LastBlock);
+    }
+
+    [Fact]
+    public void SuccessfulMove_ClearsTheBlockReason()
+    {
+        var game = new Game();
+        var board = Board.Parse(game);
+        var (px, py) = board.Find(Board.Player);
+
+        foreach (var (dx, dy) in new[] { (0, -1), (0, 1), (-1, 0), (1, 0) })
+            if (board.Cell(px + dx, py + dy) != Board.Wall && game.TryMove(dx, dy, out _)) break;
+
+        Assert.Equal(Game.BlockReason.None, game.LastBlock);
+    }
+
     [Fact]
     public void Restart_KeepsLevelAndResetsMoves()
     {

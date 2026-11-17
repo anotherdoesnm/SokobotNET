@@ -16,7 +16,13 @@ public static class Gameplay
 
         if (!game.TryMove(dx, dy, out bool won))
         {
-            await BoardMessage.Edit(channel, session, "🚧 you can't move there");
+            var reason = game.LastBlock switch
+            {
+                Game.BlockReason.BoxBehind => "🚧 there is another box behind that one - one box at a time",
+                Game.BlockReason.Wall => "🚧 that way is a wall",
+                _ => "🚧 you can't move there",
+            };
+            await BoardMessage.Edit(channel, session, reason);
             return;
         }
 
