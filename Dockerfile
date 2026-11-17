@@ -7,7 +7,10 @@ RUN dotnet publish SokobotNET.csproj -c Release -r linux-x64 --self-contained \
     -p:PublishSingleFile=true -o /out --nologo
 
 FROM mcr.microsoft.com/dotnet/runtime-deps:9.0
-RUN useradd --create-home --uid 1000 bot
+# /data holds the SQLite file with per-guild prefixes; mount a volume there.
+RUN useradd --create-home --uid 1000 bot && mkdir -p /data && chown bot:bot /data
+ENV SOKOBOT_DB=/data/sokobot.db
+VOLUME ["/data"]
 USER bot
 WORKDIR /app
 COPY --from=build /out/SokobotNET /app/SokobotNET

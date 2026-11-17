@@ -3,6 +3,7 @@ using Fluxer.Net;
 using Fluxer.Net.Commands;
 using Fluxer.Net.Gateway;
 using System.Reflection;
+using System.Runtime.InteropServices;
 
 public class Program
 {
@@ -12,6 +13,7 @@ public class Program
 
         var token = Environment.GetEnvironmentVariable("FLUXER_TOKEN")
             ?? throw new InvalidOperationException("FLUXER_TOKEN not found");
+
         // Unset means "whatever this build of Fluxer.Net talks to by default" (fluxer.app);
         // self-hosted instances pass their API root.
         var instance = Environment.GetEnvironmentVariable("FLUXER_INSTANCE");
@@ -21,46 +23,64 @@ public class Program
             await client.LoginAsync();
         else
             await client.LoginAsync(instance);
+
         await client.StartAsync();
+
+        // A prefix has to survive a restart, so it lives in a SQLite file.
+        var storage = new Storage();
+        PrefixStore.Initialize(storage);
+        Console.WriteLine($"[sokobot] state file: {storage.FilePath}");
 
         var commands = new CommandService();
         await commands.AddModulesAsync(Assembly.GetExecutingAssembly());
 
         client.Gateway.MessageCreated += async (data) =>
         {
-            // Ignore messages without an author (system messages, webhooks) and exclude bots.
-            if (data.Author == null || data.Author.IsBot)
-                return;
-
-            // Prefixes are per guild; direct messages fall back to the default.
-            var prefix = PrefixStore.Get(data.Guild?.Id ?? 0);
-            if (data.Content?.StartsWith(prefix) != true)
-                return;
-
-            var context = new CommandContext(client, data);
-            var result = await commands.ExecuteAsync(context, prefix.Length);
-            if (result.IsSuccess)
-                return;
-
-            if (result.Error is CommandError.BadArgCount or CommandError.ParseFailed
-                or CommandError.UnmetPrecondition or CommandError.Exception)
+            try
             {
-                try
+                // Ignore messages without an author (system messages, webhooks) and bots.
+                if (data.Author == null || data.Author.IsBot)
+                    return;
+
+                // Stale gateway sessions deliver the same message more than once; answer once.
+                if (!Events.FirstMessage(data.Id))
+                    return;
+
+                var prefix = PrefixStore.Get(data.Guild?.Id ?? 0);
+                if (data.Content?.StartsWith(prefix) != true)
+                    return;
+
+                var context = new CommandContext(client, data);
+                var result = await commands.ExecuteAsync(context, prefix.Length);
+                if (result.IsSuccess)
+                    return;
+
+                if (result.Error is CommandError.BadArgCount or CommandError.ParseFailed
+                    or CommandError.UnmetPrecondition or CommandError.Exception)
                 {
-                    await context.Channel.SendMessageAsync($"❌ Error: {result.Error}: {result.ErrorReason}");
+                    try
+                    {
+                        await context.Channel.SendMessageAsync($"❌ Error: {result.Error}: {result.ErrorReason}");
+                    }
+                    catch { }
                 }
-                catch { }
+            }
+            catch (Exception error)
+            {
+                Console.Error.WriteLine($"[sokobot] message handler failed: {error}");
             }
         };
 
-        // Reaction controls: the board message carries four arrows, and only the player who
-        // owns that board may drive it. Our own additions come back as events too, hence the
-        // self-check; without it the bot would answer its own arrows.
+        // Reaction controls: the board carries four arrows, and only the player who owns that
+        // board may drive it. Our own additions come back as events too, hence the self-check.
         client.Gateway.MessageReactionAdded += async (channel, _, reaction) =>
         {
             try
             {
                 if (reaction.UserId == client.Gateway.CurrentUser?.Id)
+                    return;
+
+                if (!Events.FirstReaction(reaction.MessageId, reaction.UserId, reaction.Emoji?.Name))
                     return;
 
                 var owner = GameStore.Games.FirstOrDefault(pair => pair.Value.MessageId == reaction.MessageId);
@@ -79,11 +99,22 @@ public class Program
             }
             catch (Exception error)
             {
-                // An async void handler swallows exceptions by default, and then the board
-                // simply stops moving with nothing in the log to explain why.
                 Console.Error.WriteLine($"[sokobot] reaction handler failed: {error}");
             }
         };
+
+        // Close the gateway on shutdown: a session left open keeps receiving events, and the
+        // next copy of the bot then answers the same message a second time.
+        void shutdown(PosixSignalContext context)
+        {
+            context.Cancel = true;
+            Console.WriteLine("[sokobot] shutting down");
+            try { client.Gateway.Dispose(); } catch { }
+            Environment.Exit(0);
+        }
+
+        using var term = PosixSignalRegistration.Create(PosixSignal.SIGTERM, shutdown);
+        using var interrupt = PosixSignalRegistration.Create(PosixSignal.SIGINT, shutdown);
 
         await Task.Delay(-1);
     }

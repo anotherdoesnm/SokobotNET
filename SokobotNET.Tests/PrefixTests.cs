@@ -1,17 +1,20 @@
+using System;
+using System.IO;
 using Xunit;
 
 public class PrefixTests
 {
+    private static Storage TempStorage()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"sokobot-test-{Guid.NewGuid():N}.db");
+        return new Storage(path);
+    }
+
     [Theory]
     [InlineData("?")]
     [InlineData("..")]
-    [InlineData("soko")]
     [InlineData("~")]
-    public void ReasonablePrefixes_AreAccepted(string prefix)
-    {
-        // "soko" is four characters: that is deliberately rejected, see below.
-        Assert.Equal(prefix.Length <= 3, PrefixStore.IsValid(prefix));
-    }
+    public void ShortPrefixes_AreAccepted(string prefix) => Assert.True(PrefixStore.IsValid(prefix));
 
     [Theory]
     [InlineData(null)]
@@ -19,34 +22,38 @@ public class PrefixTests
     [InlineData("   ")]
     [InlineData("! ")]
     [InlineData("abcd")]
-    public void Junk_IsRejected(string? prefix)
+    public void Junk_IsRejected(string? prefix) => Assert.False(PrefixStore.IsValid(prefix));
+
+    [Fact]
+    public void Prefix_SurvivesAReopen()
     {
-        Assert.False(PrefixStore.IsValid(prefix));
+        var path = Path.Combine(Path.GetTempPath(), $"sokobot-test-{Guid.NewGuid():N}.db");
+
+        var first = new Storage(path);
+        PrefixStore.Initialize(first);
+        Assert.True(PrefixStore.Set(42, "?"));
+        Assert.Equal("?", PrefixStore.Get(42));
+
+        // A restart reads the same file.
+        var second = new Storage(path);
+        PrefixStore.Initialize(second);
+        Assert.Equal("?", PrefixStore.Get(42));
+        Assert.Equal("!", PrefixStore.Get(43));
+
+        PrefixStore.Set(42, PrefixStore.Default);
+        var third = new Storage(path);
+        PrefixStore.Initialize(third);
+        Assert.Equal("!", PrefixStore.Get(42));
+
+        File.Delete(path);
     }
 
     [Fact]
-    public void SetAndGet_ArePerGuild()
+    public void WithoutStorage_TheStoreDoesNothing()
     {
-        PrefixStore.Reset(1);
-        PrefixStore.Reset(2);
-
-        Assert.True(PrefixStore.Set(1, "?"));
-        Assert.Equal("?", PrefixStore.Get(1));
-        Assert.Equal("!", PrefixStore.Get(2));
-        Assert.Equal("!", PrefixStore.Get(0));
-
-        PrefixStore.Set(1, "..");
-        Assert.Equal("..", PrefixStore.Get(1));
-
-        PrefixStore.Reset(1);
+        // A test that forgets Initialize must not pretend to persist.
+        PrefixStore.Initialize(null!);
+        Assert.False(PrefixStore.Set(1, "?"));
         Assert.Equal("!", PrefixStore.Get(1));
-    }
-
-    [Fact]
-    public void SettingTheDefault_ClearsTheEntry()
-    {
-        PrefixStore.Set(7, "?");
-        Assert.True(PrefixStore.Set(7, PrefixStore.Default));
-        Assert.Equal("!", PrefixStore.Get(7));
     }
 }

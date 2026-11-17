@@ -44,13 +44,18 @@ https://<your instance>/oauth2/authorize?client_id=<bot id>&scope=bot&permission
 |---|---|
 | `FLUXER_TOKEN` | bot token, `id.secret` (required) |
 | `FLUXER_INSTANCE` | API root of a self-hosted instance; unset means fluxer.app |
+| `SOKOBOT_DB` | SQLite file for per-guild prefixes, default `sokobot.db` (the image uses `/data/sokobot.db`) |
 
 ## Run
 
 ```sh
 dotnet run                      # local
-docker build -t sokobot . && docker run --rm -e FLUXER_TOKEN=... sokobot
+docker build -t sokobot .
+docker run --rm -e FLUXER_TOKEN=... -v sokobot-data:/data sokobot
 ```
+
+`/data` holds one SQLite file: per-guild prefixes. Mount a volume or they reset with
+the container.
 
 ## Tests
 

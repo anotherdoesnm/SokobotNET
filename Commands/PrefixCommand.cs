@@ -11,7 +11,7 @@ public class PrefixModule : ModuleBase
 
         if (string.IsNullOrEmpty(value))
         {
-            PrefixStore.Reset(guildId);
+            PrefixStore.Set(guildId, PrefixStore.Default);
             await ReplyAsync(
                 $"Prefix reset to `{PrefixStore.Default}`. Example: `{PrefixStore.Default}play`."
             );

@@ -1,37 +1,29 @@
-using System.Collections.Concurrent;
 using System.Linq;
 
 /// <summary>
-/// The command prefix, remembered per guild. Guild 0 is the bucket for direct messages,
-/// where there is no guild to key on. A prefix lives in memory only: a restart puts every
-/// guild back on the default, which is the safer failure for a command prefix.
+/// Uses the shared <see cref="Storage"/> for persistence and keeps validation rules here,
+/// so a prefix is judged the same way whether it arrives from a command or from a test.
 /// </summary>
 public static class PrefixStore
 {
     public const string Default = "!";
 
-    private static readonly ConcurrentDictionary<ulong, string> Prefixes = new();
+    private static Storage? _storage;
 
-    public static string Get(ulong guildId) =>
-        Prefixes.TryGetValue(guildId, out var prefix) ? prefix : Default;
+    public static void Initialize(Storage storage) => _storage = storage;
 
-    /// <summary>One to three characters, no whitespace: longer prefixes collide with prose.</summary>
     public static bool IsValid(string? prefix) =>
         !string.IsNullOrWhiteSpace(prefix)
         && prefix.Length is >= 1 and <= 3
         && !prefix.Any(char.IsWhiteSpace);
 
+    public static string Get(ulong guildId) => _storage?.Prefix(guildId) ?? Default;
+
     public static bool Set(ulong guildId, string prefix)
     {
-        if (!IsValid(prefix)) return false;
-        if (prefix == Default)
-        {
-            Prefixes.TryRemove(guildId, out _);
-            return true;
-        }
-        Prefixes[guildId] = prefix;
+        if (!IsValid(prefix) || _storage is null) return false;
+        if (prefix == Default) { _storage.ClearPrefix(guildId); return true; }
+        _storage.SetPrefix(guildId, prefix);
         return true;
     }
-
-    public static void Reset(ulong guildId) => Prefixes.TryRemove(guildId, out _);
 }
