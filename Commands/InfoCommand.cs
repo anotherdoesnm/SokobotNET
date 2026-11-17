@@ -7,7 +7,7 @@ public class InfoCommand : ModuleBase {
     public async Task Info(){
       var embed = new EmbedBuilder()
       .WithTitle("SokobotNET")
-      .WithThumbnailUrl(Context.Gateway.CurrentUser.GetAvatarUrl() ?? Context.Gateway.CurrentUser.GetDefaultAvatarUrl())
+      .WithThumbnailUrl(Context.Gateway.CurrentUser?.GetAvatarUrl() ?? Context.Gateway.CurrentUser?.GetDefaultAvatarUrl())
       .WithDescription("SokobotNET is a bot that lets you play Sokoban, the classic box-pushing puzzle game.\n")
       .WithColor(0xDD, 0x2E, 0x53)
       .AddField("How to Play","You are a **Sokoban** :flushed:\n"
