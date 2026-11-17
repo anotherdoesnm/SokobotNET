@@ -7,6 +7,9 @@ using System.Threading.Tasks;
 /// </summary>
 public static class Gameplay
 {
+    /// <summary>How long the finished board stays visible before the next one appears.</summary>
+    public const int LevelRolloverMs = 1200;
+
     public static async Task Move(Channel channel, Session session, int dx, int dy, ulong? moveMessageId = null)
     {
         var game = session.Game;
@@ -19,10 +22,14 @@ public static class Gameplay
 
         if (won)
         {
+            // Same message for the whole game: show the finished board, then roll it over
+            // to the next level in place. A new message per level buried the old one and
+            // left stale arrows behind.
             int cleared = game.Level;
             await BoardMessage.Edit(channel, session, $"🎉 Level {cleared} complete");
             game.NextLevel();
-            await BoardMessage.Send(channel, session);
+            await Task.Delay(LevelRolloverMs);
+            await BoardMessage.Edit(channel, session);
         }
         else
         {

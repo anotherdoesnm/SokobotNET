@@ -51,6 +51,19 @@ public static class BoardMessage
         }
     }
 
+
+    /// <summary>
+    /// Drop the player's own reaction once it has been handled. Emoji reactions are a
+    /// toggle: leaving ours in place means the same arrow cannot be pressed again until
+    /// the player removes it by hand.
+    /// </summary>
+    public static async Task ClearPlayerReaction(Channel channel, ulong messageId, string? emoji, ulong userId)
+    {
+        if (string.IsNullOrEmpty(emoji)) return;
+        try { await channel.RemoveUserReactionAsync(messageId, emoji, userId); }
+        catch { /* best effort: the arrow still works, it just has to be removed by hand */ }
+    }
+
     private static readonly Dictionary<string, (int dx, int dy)> Arrows = new()
     {
         ["\u2B06"] = (0, -1),   // ⬆

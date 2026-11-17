@@ -70,6 +70,7 @@ public class Program
                 Console.WriteLine($"[sokobot] reaction {reaction.Emoji?.Name} from {reaction.UserId} -> "
                     + $"{direction.Value.dx},{direction.Value.dy}");
                 await Gameplay.Move(channel, owner.Value, direction.Value.dx, direction.Value.dy);
+                await BoardMessage.ClearPlayerReaction(channel, reaction.MessageId, reaction.Emoji?.Name, reaction.UserId);
             }
             catch (Exception error)
             {
