@@ -35,13 +35,14 @@ public class MoveModule : ModuleBase
 
         if (won)
         {
-            await ReplyAsync($"{game}\n🎉 Level {game.Level} complete!");
+            int cleared = game.Level;
+            await ReplyAsync(embeds: BoardRender.Build(game, $"🎉 Level {cleared} complete"));
             game.NextLevel();
-            await ReplyAsync(game.ToString());
+            await ReplyAsync(embeds: BoardRender.Build(game));
         }
         else
         {
-            await ReplyAsync(game.ToString());
+            await ReplyAsync(embeds: BoardRender.Build(game));
         }
     }
 }

@@ -13,10 +13,7 @@ public class GameModule : ModuleBase
             );
             return;
         }
-        await ReplyAsync(
-            $"{GameStore.Games[Context.User.Id]}\n"
-            + "*WASD:* `!w` up · `!a` left · `!s` down · `!d` right"
-        );
+        await ReplyAsync(embeds: BoardRender.Build(GameStore.Games[Context.User.Id]));
     }
 
     [Command("stop")]
@@ -32,7 +29,7 @@ public class GameModule : ModuleBase
     public async Task Board()
     {
         if (GameStore.Games.TryGetValue(Context.User.Id, out var game))
-            await ReplyAsync(game.ToString());
+            await ReplyAsync(embeds: BoardRender.Build(game));
         else
             await ReplyAsync("No active game. Use `!play` to start one.");
     }

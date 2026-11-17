@@ -85,6 +85,13 @@ public class Game
     private bool IsInside((int x, int y) p) =>
         p.x >= 0 && p.y >= 0 && p.x < _grid.GetLength(0) && p.y < _grid.GetLength(1);
 
+    /// <summary>
+    /// Build a level by starting from a solved position (every box on a target) and
+    /// dragging boxes backwards. Every pull is the reverse of a push, so the puzzle is
+    /// solvable by construction: undo the pulls and you are home. Random placement, the
+    /// previous approach, produced a dead end often enough that a level had to be rerolled
+    /// twice in the first minute of play.
+    /// </summary>
     private void Generate()
     {
         int size = Math.Min(6 + Level / 2, 12);
@@ -103,7 +110,6 @@ public class Game
             for (int y = 1; y < size - 1; y++)
                 floor.Add((x, y));
 
-        // Fisher–Yates shuffle to scatter entities without repeats.
         for (int i = floor.Count - 1; i > 0; i--)
         {
             int j = _rng.Next(i + 1);
@@ -111,13 +117,106 @@ public class Game
         }
 
         int boxCount = Math.Min(1 + Level / 3, 6);
-        _player = floor[0];
-        _boxes.AddRange(floor.Skip(1).Take(boxCount));
-        foreach (var t in floor.Skip(1 + boxCount).Take(boxCount))
+        if (floor.Count <= boxCount + 1) boxCount = Math.Max(1, floor.Count - 2);
+
+        // Solved state: the boxes sit on the targets.
+        foreach (var cell in floor.Take(boxCount))
         {
-            _targets.Add(t);
-            _grid[t.x, t.y] = Cell.Target;
+            _boxes.Add(cell);
+            _targets.Add(cell);
+            _grid[cell.x, cell.y] = Cell.Target;
         }
+        _player = floor.Skip(boxCount).First();
+
+        // Drag boxes around. The player walks normally (boxes are obstacles) and then
+        // pulls, which is exactly the inverse of a push, so the result stays solvable.
+        int pulls = 0;
+        int goal = Math.Min(2 + boxCount * 3 + Level / 2, 40);
+        int attempts = 0;
+        int budget = goal * 40 + 200;
+
+        while (pulls < goal && attempts++ < budget)
+        {
+            if (!TryPullOnce()) continue;
+            pulls++;
+        }
+
+        // A puzzle whose boxes all sit on targets is already solved, which is no puzzle.
+        while (IsSolved() && attempts++ < budget) TryPullOnce();
+    }
+
+    private static readonly (int dx, int dy)[] Steps =
+    [
+        (0, -1), (0, 1), (-1, 0), (1, 0),
+    ];
+
+    /// <summary>
+    /// Pick a box and a direction, walk the player into position, and drag the box one cell.
+    /// Returns false when no box can be pulled right now; the caller retries.
+    /// </summary>
+    private bool TryPullOnce()
+    {
+        var directions = Steps.OrderBy(_ => _rng.Next()).ToArray();
+
+        foreach (var start in _boxes.OrderBy(_ => _rng.Next()).ToArray())
+        {
+            foreach (var (dx, dy) in directions)
+            {
+                // The player has to stand behind the box and have room to step back.
+                var behind = (x: start.x + dx, y: start.y + dy);
+                var landing = (x: start.x + 2 * dx, y: start.y + 2 * dy);
+
+                if (!IsFloor(behind) || _boxes.Contains(behind)) continue;
+                if (!IsFloor(landing) || _boxes.Contains(landing)) continue;
+                if (!CanWalk(_player, behind)) continue;
+
+                // Drag: the box takes the player's cell, the player steps away.
+                _boxes.Remove(start);
+                _boxes.Add(behind);
+                _player = landing;
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private bool IsFloor((int x, int y) p) => IsInside(p) && _grid[p.x, p.y] != Cell.Wall;
+
+    /// <summary>Breadth-first walk over free cells, boxes treated as walls.</summary>
+    private bool CanWalk((int x, int y) from, (int x, int y) to)
+    {
+        if (from == to) return true;
+
+        var seen = new HashSet<(int x, int y)> { from };
+        var queue = new Queue<(int x, int y)>();
+        queue.Enqueue(from);
+
+        while (queue.Count > 0)
+        {
+            var cell = queue.Dequeue();
+            foreach (var (dx, dy) in Steps)
+            {
+                var next = (x: cell.x + dx, y: cell.y + dy);
+                if (next == to) return true;
+                if (!IsFloor(next) || _boxes.Contains(next) || !seen.Add(next)) continue;
+                queue.Enqueue(next);
+            }
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// Raw level state, for tests and tooling that need to search (a solver cannot
+    /// clone a Game otherwise). The bot itself never calls this.
+    /// </summary>
+    public (bool[,] walls, (int x, int y)[] boxes, (int x, int y)[] targets, (int x, int y) player) Snapshot()
+    {
+        var walls = new bool[_grid.GetLength(0), _grid.GetLength(1)];
+        for (int x = 0; x < _grid.GetLength(0); x++)
+            for (int y = 0; y < _grid.GetLength(1); y++)
+                walls[x, y] = _grid[x, y] == Cell.Wall;
+
+        return (walls, _boxes.ToArray(), _targets.ToArray(), _player);
     }
 
     public override string ToString()

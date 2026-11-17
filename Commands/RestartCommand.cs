@@ -14,6 +14,6 @@ public class RestartModule : ModuleBase
         }
 
         game.Restart();
-        await ReplyAsync($"♻️ Level {game.Level} restarted.\n{game}");
+        await ReplyAsync(embeds: BoardRender.Build(game, $"♻️ Level {game.Level} restarted"));
     }
 }
