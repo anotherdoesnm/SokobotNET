@@ -21,28 +21,12 @@ public class MoveModule : ModuleBase
 
     private async Task Move(int dx, int dy)
     {
-        if (!GameStore.Games.TryGetValue(Context.User.Id, out var game))
+        if (!GameStore.Games.TryGetValue(Context.User.Id, out var session))
         {
             await ReplyAsync("No active game. Use `!play` to start one.");
             return;
         }
 
-        if (!game.TryMove(dx, dy, out bool won))
-        {
-            await ReplyAsync("🚧 You can't move there.");
-            return;
-        }
-
-        if (won)
-        {
-            int cleared = game.Level;
-            await ReplyAsync(embeds: BoardRender.Build(game, $"🎉 Level {cleared} complete"));
-            game.NextLevel();
-            await ReplyAsync(embeds: BoardRender.Build(game));
-        }
-        else
-        {
-            await ReplyAsync(embeds: BoardRender.Build(game));
-        }
+        await Gameplay.Move(Context.Channel, session, dx, dy);
     }
 }

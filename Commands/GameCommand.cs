@@ -6,14 +6,17 @@ public class GameModule : ModuleBase
     [Command("play")]
     public async Task Play()
     {
-        if (!GameStore.Games.TryAdd(Context.User.Id, new Game()))
+        var session = new Session { Game = new Game() };
+
+        if (!GameStore.Games.TryAdd(Context.User.Id, session))
         {
             await ReplyAsync(
                 "You already have an active game.\nUse `!stop` to stop your current game first."
             );
             return;
         }
-        await ReplyAsync(embeds: BoardRender.Build(GameStore.Games[Context.User.Id]));
+
+        await BoardMessage.Send(Context.Channel, session);
     }
 
     [Command("stop")]
@@ -28,9 +31,14 @@ public class GameModule : ModuleBase
     [Command("board")]
     public async Task Board()
     {
-        if (GameStore.Games.TryGetValue(Context.User.Id, out var game))
-            await ReplyAsync(embeds: BoardRender.Build(game));
+        if (GameStore.Games.TryGetValue(Context.User.Id, out var session))
+        {
+            // Re-post and re-attach arrows: the old message may be gone or out of sight.
+            await BoardMessage.Send(Context.Channel, session);
+        }
         else
+        {
             await ReplyAsync("No active game. Use `!play` to start one.");
+        }
     }
 }

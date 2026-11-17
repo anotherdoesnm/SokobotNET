@@ -182,6 +182,9 @@ public class Game
 
                 if (!IsFloor(behind) || _boxes.Contains(behind)) continue;
                 if (!IsFloor(landing) || _boxes.Contains(landing)) continue;
+                // The player would end up standing on a target, hiding it in the render:
+                // a cell draws the player before the target underneath.
+                if (_targets.Contains(landing)) continue;
                 if (!CanWalk(_player, behind)) continue;
 
                 // Drag: the box takes the player's cell, the player steps away.

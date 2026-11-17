@@ -3,56 +3,70 @@ using Fluxer.Net;
 using Fluxer.Net.Commands;
 using Fluxer.Net.Gateway;
 using System.Reflection;
+
 public class Program
 {
     static async Task Main(string[] args)
     {
         Env.Load();
+
         var token = Environment.GetEnvironmentVariable("FLUXER_TOKEN")
-    ?? throw new InvalidOperationException("FLUXER_TOKEN not found");
-        var _client = new FluxerClient($"Bot {token}");
-        var instance = Environment.GetEnvironmentVariable("FLUXER_INSTANCE") ?? "https://fluxer.doesnmlab.xyz/api";
-        await _client.LoginAsync(instance);
-        await _client.StartAsync();
-        var _commands = new CommandService();
-        await _commands.AddModulesAsync(Assembly.GetExecutingAssembly());
-        string prefix = "!";
-        _client.Gateway.MessageCreated += async (data) =>
-    {
-        // Ignore messages without an author (system messages, webhooks) and exclude bots.
-        if (data.Author == null || data.Author.IsBot)
-            return;
+            ?? throw new InvalidOperationException("FLUXER_TOKEN not found");
+        var instance = Environment.GetEnvironmentVariable("FLUXER_INSTANCE")
+            ?? "https://fluxer.doesnmlab.xyz/api";
 
-        // Check if message starts with the prefix
-        int argPos = 0;
-        if (data.Content?.StartsWith(prefix) == true)
-            argPos = prefix.Length;
+        var client = new FluxerClient($"Bot {token}");
+        await client.LoginAsync(instance);
+        await client.StartAsync();
 
-        if (argPos == 0)
-            return;
-        
-        // Create a command context
-        CommandContext context = new CommandContext(_client, data);
+        var commands = new CommandService();
+        await commands.AddModulesAsync(Assembly.GetExecutingAssembly());
 
-        // Execute the command
-        IResult result = await _commands.ExecuteAsync(context, argPos);
-
-        if (result.IsSuccess)
-            return;
-
-        // Optionally send error message to user
-        if (result.Error == CommandError.BadArgCount ||
-            result.Error == CommandError.ParseFailed ||
-            result.Error == CommandError.UnmetPrecondition ||
-            result.Error == CommandError.Exception)
+        client.Gateway.MessageCreated += async (data) =>
         {
-            try
+            // Ignore messages without an author (system messages, webhooks) and exclude bots.
+            if (data.Author == null || data.Author.IsBot)
+                return;
+
+            const string prefix = "!";
+            if (data.Content?.StartsWith(prefix) != true)
+                return;
+
+            var context = new CommandContext(client, data);
+            var result = await commands.ExecuteAsync(context, prefix.Length);
+            if (result.IsSuccess)
+                return;
+
+            if (result.Error is CommandError.BadArgCount or CommandError.ParseFailed
+                or CommandError.UnmetPrecondition or CommandError.Exception)
             {
-                await context.Channel.SendMessageAsync($"❌ Error: {result.Error}: {result.ErrorReason}");
+                try
+                {
+                    await context.Channel.SendMessageAsync($"❌ Error: {result.Error}: {result.ErrorReason}");
+                }
+                catch { }
             }
-            catch { }
-        }
-    };
+        };
+
+        // Reaction controls: the board message carries four arrows, and only the player who
+        // owns that board may drive it. Our own additions come back as events too, hence the
+        // self-check; without it the bot would answer its own arrows.
+        client.Gateway.MessageReactionAdded += async (channel, _, reaction) =>
+        {
+            if (reaction.UserId == client.Gateway.CurrentUser?.Id)
+                return;
+
+            var owner = GameStore.Games.FirstOrDefault(pair => pair.Value.MessageId == reaction.MessageId);
+            if (owner.Value is null || owner.Key != reaction.UserId)
+                return;
+
+            var direction = BoardMessage.Direction(reaction.Emoji?.ToString() ?? "");
+            if (direction is null)
+                return;
+
+            await Gameplay.Move(channel, owner.Value, direction.Value.dx, direction.Value.dy);
+        };
+
         await Task.Delay(-1);
     }
 }
