@@ -4,6 +4,26 @@ A Sokoban bot for Fluxer: `!play` drops a board into the channel, arrow reaction
 `!w`/`!a`/`!s`/`!d` move the player, and every move edits the same message instead of
 posting a new one. Ported from PolyMars' Java bot, rewritten in C# on .NET 9.
 
+## Adding it to a server
+
+A hosted copy runs on fluxer.com — invite it with:
+
+```
+https://fluxer.com/oauth2/authorize?client_id=1572238378789773312&scope=bot&permissions=8192
+```
+
+`8192` is **Manage Messages**, and it is asked for exactly one reason: the bot removes
+the player's arrow reaction after each move, and removing somebody else's reaction
+needs that permission. Sending, embedding and adding reactions come from the default
+`@everyone` permissions, so nothing else is requested.
+
+To run your own copy, create a bot account on your instance, set `FLUXER_TOKEN`, and
+invite it with your own id:
+
+```
+https://<your instance>/oauth2/authorize?client_id=<bot id>&scope=bot&permissions=8192
+```
+
 ## Commands
 
 | | |
