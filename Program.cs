@@ -53,18 +53,30 @@ public class Program
         // self-check; without it the bot would answer its own arrows.
         client.Gateway.MessageReactionAdded += async (channel, _, reaction) =>
         {
-            if (reaction.UserId == client.Gateway.CurrentUser?.Id)
-                return;
+            try
+            {
+                if (reaction.UserId == client.Gateway.CurrentUser?.Id)
+                    return;
 
-            var owner = GameStore.Games.FirstOrDefault(pair => pair.Value.MessageId == reaction.MessageId);
-            if (owner.Value is null || owner.Key != reaction.UserId)
-                return;
+                var owner = GameStore.Games.FirstOrDefault(pair => pair.Value.MessageId == reaction.MessageId);
+                if (owner.Value is null || owner.Key != reaction.UserId)
+                    return;
 
-            var direction = BoardMessage.Direction(reaction.Emoji?.ToString() ?? "");
-            if (direction is null)
-                return;
+                // Fluxer puts the glyph in IEmoji.Name; ToString() would hand back the type name.
+                var direction = BoardMessage.Direction(reaction.Emoji?.Name);
+                if (direction is null)
+                    return;
 
-            await Gameplay.Move(channel, owner.Value, direction.Value.dx, direction.Value.dy);
+                Console.WriteLine($"[sokobot] reaction {reaction.Emoji?.Name} from {reaction.UserId} -> "
+                    + $"{direction.Value.dx},{direction.Value.dy}");
+                await Gameplay.Move(channel, owner.Value, direction.Value.dx, direction.Value.dy);
+            }
+            catch (Exception error)
+            {
+                // An async void handler swallows exceptions by default, and then the board
+                // simply stops moving with nothing in the log to explain why.
+                Console.Error.WriteLine($"[sokobot] reaction handler failed: {error}");
+            }
         };
 
         await Task.Delay(-1);

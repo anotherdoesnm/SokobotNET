@@ -51,12 +51,23 @@ public static class BoardMessage
         }
     }
 
-    /// <summary>Which way an emoji points, or null when it is not one of ours.</summary>
-    public static (int dx, int dy)? Direction(string emoji)
+    private static readonly Dictionary<string, (int dx, int dy)> Arrows = new()
     {
-        for (int i = 0; i < Controls.Length; i++)
-            if (emoji.StartsWith(Controls[i][0].ToString()) || emoji == Controls[i])
-                return Directions[i];
-        return null;
+        ["\u2B06"] = (0, -1),   // ⬆
+        ["\u2B05"] = (-1, 0),   // ⬅
+        ["\u2B07"] = (0, 1),    // ⬇
+        ["\u27A1"] = (1, 0),    // ➡
+    };
+
+    /// <summary>
+    /// Which way an emoji points, or null when it is not one of ours. Fluxer reports the
+    /// glyph in IEmoji.Name, sometimes with a variation selector (U+FE0F) attached, so
+    /// that is stripped before matching; IEmoji.ToString() returns the type name.
+    /// </summary>
+    public static (int dx, int dy)? Direction(string? emoji)
+    {
+        if (string.IsNullOrWhiteSpace(emoji)) return null;
+        var glyph = emoji.Trim().TrimEnd('\uFE0F');
+        return Arrows.TryGetValue(glyph, out var step) ? step : null;
     }
 }
