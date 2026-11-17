@@ -88,11 +88,24 @@ public class Game
     /// <summary>
     /// Build a level by starting from a solved position (every box on a target) and
     /// dragging boxes backwards. Every pull is the reverse of a push, so the puzzle is
-    /// solvable by construction: undo the pulls and you are home. Random placement, the
-    /// previous approach, produced a dead end often enough that a level had to be rerolled
-    /// twice in the first minute of play.
+    /// solvable by construction: undo the pulls and you are home.
+    ///
+    /// A level where a box starts on its target is half-solved before the first move, so
+    /// generation repeats until no box sits on a target. Pulling targets boxes that are
+    /// still home first, which makes that cheap instead of a lottery.
     /// </summary>
     private void Generate()
+    {
+        for (int attempt = 0; attempt < 40; attempt++)
+        {
+            ResetSolved();
+            Scramble();
+            if (!_boxes.Any(_targets.Contains)) return;
+        }
+    }
+
+    /// <summary>Walls, targets and boxes sitting on them; the state before scrambling.</summary>
+    private void ResetSolved()
     {
         int size = Math.Min(6 + Level / 2, 12);
         _grid = new Cell[size, size];
@@ -119,7 +132,6 @@ public class Game
         int boxCount = Math.Min(1 + Level / 3, 6);
         if (floor.Count <= boxCount + 1) boxCount = Math.Max(1, floor.Count - 2);
 
-        // Solved state: the boxes sit on the targets.
         foreach (var cell in floor.Take(boxCount))
         {
             _boxes.Add(cell);
@@ -127,22 +139,19 @@ public class Game
             _grid[cell.x, cell.y] = Cell.Target;
         }
         _player = floor.Skip(boxCount).First();
+    }
 
-        // Drag boxes around. The player walks normally (boxes are obstacles) and then
-        // pulls, which is exactly the inverse of a push, so the result stays solvable.
+    /// <summary>Drag boxes around until nothing is left on a target, if we can.</summary>
+    private void Scramble()
+    {
+        int boxCount = _boxes.Count;
         int pulls = 0;
         int goal = Math.Min(2 + boxCount * 3 + Level / 2, 40);
         int attempts = 0;
         int budget = goal * 40 + 200;
 
         while (pulls < goal && attempts++ < budget)
-        {
-            if (!TryPullOnce()) continue;
-            pulls++;
-        }
-
-        // A puzzle whose boxes all sit on targets is already solved, which is no puzzle.
-        while (IsSolved() && attempts++ < budget) TryPullOnce();
+            if (TryPullOnce()) pulls++;
     }
 
     private static readonly (int dx, int dy)[] Steps =
@@ -158,7 +167,12 @@ public class Game
     {
         var directions = Steps.OrderBy(_ => _rng.Next()).ToArray();
 
-        foreach (var start in _boxes.OrderBy(_ => _rng.Next()).ToArray())
+        var order = _boxes
+            .OrderBy(box => _targets.Contains(box) ? 0 : 1)
+            .ThenBy(_ => _rng.Next())
+            .ToArray();
+
+        foreach (var start in order)
         {
             foreach (var (dx, dy) in directions)
             {

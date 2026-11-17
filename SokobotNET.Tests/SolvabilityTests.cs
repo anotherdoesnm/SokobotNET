@@ -20,6 +20,21 @@ public class SolvabilityTests
         Assert.False(game.IsSolved(), $"level {level} starts already solved, which is not a puzzle");
     }
 
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(3)]
+    [InlineData(4)]
+    [InlineData(6)]
+    [InlineData(9)]
+    public void NoBox_StartsOnATarget(int level)
+    {
+        var (_, boxes, targets, _) = new Game(level).Snapshot();
+        var home = new HashSet<(int x, int y)>(targets);
+        Assert.DoesNotContain(boxes, home.Contains);
+    }
+
     private static bool Solve(Game game, out int visited)
     {
         var (walls, boxes, targets, player) = game.Snapshot();
