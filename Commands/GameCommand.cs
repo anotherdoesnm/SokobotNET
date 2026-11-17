@@ -13,7 +13,10 @@ public class GameModule : ModuleBase
             );
             return;
         }
-        await ReplyAsync(GameStore.Games[Context.User.Id].ToString());
+        await ReplyAsync(
+            $"{GameStore.Games[Context.User.Id]}\n"
+            + "*WASD:* `!w` up · `!a` left · `!s` down · `!d` right"
+        );
     }
 
     [Command("stop")]
