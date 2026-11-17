@@ -20,8 +20,12 @@ public class InfoCommand : ModuleBase {
       + "Thanks to the power of C# Dictionaries:tm:, multiple users can use the bot at the same time without interfering with one another",false)
       .AddField("Commands","``!play`` can be used to start a game if you are not currently in one.\n"
       + "``!stop`` can be used to stop your active game at any time.\n"
-      + "``!info`` provides some useful details about the bot and rules of the game")
-      .AddField("Source code","https://git.doesnmlab.xyz/kirill/SokobotNET")
+      + "``!board`` re-posts your board; ``!restart`` rerolls a level you got stuck in.\n"
+      + "``!w`` ``!a`` ``!s`` ``!d`` move, and so do the arrows under the board.\n"
+      + "``!prefix <chars>`` changes the command prefix for this server (no argument resets it).\n"
+      + "``!info`` provides some useful details about the bot and rules of the game.\n"
+      + "``!help`` does not.")
+      .AddField("Source code","https://github.com/anotherdoesnm/SokobotNET")
       .WithFooter(footer => footer.Text = "Initially created in Java by PolyMars, ported to C# by doesnm");
       await ReplyAsync(embeds: new List<EmbedRequest>{embed.Build()});
     }

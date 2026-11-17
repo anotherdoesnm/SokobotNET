@@ -32,7 +32,8 @@ public class Program
             if (data.Author == null || data.Author.IsBot)
                 return;
 
-            const string prefix = "!";
+            // Prefixes are per guild; direct messages fall back to the default.
+            var prefix = PrefixStore.Get(data.Guild?.Id ?? 0);
             if (data.Content?.StartsWith(prefix) != true)
                 return;
 

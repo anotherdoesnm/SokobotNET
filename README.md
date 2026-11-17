@@ -33,8 +33,10 @@ https://<your instance>/oauth2/authorize?client_id=<bot id>&scope=bot&permission
 | ⬆️ ⬅️ ⬇️ ➡️ | move by reacting to the board |
 | `!board` | re-post the board |
 | `!restart` | same level, new layout — the escape hatch when a box is stuck |
+| `!prefix <chars>` | change the command prefix for this server, no argument resets it |
 | `!stop` | stop the game |
-| `!info`, `!help` | about, command list |
+| `!info` | about the bot and the real command list |
+| `!help` | does not |
 
 ## Configuration
 
