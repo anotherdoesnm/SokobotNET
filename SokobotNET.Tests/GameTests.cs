@@ -78,7 +78,14 @@ public class GameTests
     {
         var game = new Game();
         var rng = new Random(12345);
-        int boxes = Board.Parse(game).Count(Board.Box) + Board.Parse(game).Count(Board.BoxHome);
+
+        int CountBoxes() 
+        {
+            var board = Board.Parse(game);
+            return board.Count(Board.Box) + board.Count(Board.BoxHome);
+        }
+
+        int boxes = CountBoxes();
 
         for (int i = 0; i < 3000; i++)
         {
@@ -86,13 +93,18 @@ public class GameTests
             if (dx == 0 && dy == 0) continue;
             if (!game.TryMove(dx, dy, out bool won)) continue;
 
-            var board = Board.Parse(game);
-            Assert.Equal(boxes, board.Count(Board.Box) + board.Count(Board.BoxHome));
-            Assert.NotEqual((-1, -1), board.Find(Board.Player));
-            if (won) game.NextLevel();
+            if (won)
+            {
+                // The next level legitimately has more boxes, so resync instead of asserting.
+                game.NextLevel();
+                boxes = CountBoxes();
+                continue;
+            }
+
+            Assert.Equal(boxes, CountBoxes());
+            Assert.NotEqual((-1, -1), Board.Parse(game).Find(Board.Player));
         }
     }
-
 
     [Fact]
     public void MovingIntoAWall_IsReportedAsAWall()
@@ -101,7 +113,6 @@ public class GameTests
         var board = Board.Parse(game);
         var (px, py) = board.Find(Board.Player);
 
-        // walk to the top border, then push against it
         while (board.Cell(px, py - 1) != Board.Wall)
         {
             if (!game.TryMove(0, -1, out _)) break;
