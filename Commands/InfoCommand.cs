@@ -28,9 +28,20 @@ public class InfoCommand : ModuleBase
                 + ":white_small_square:**Simultaneous games**\n"
                 + "Thanks to the power of C# Dictionaries:tm:, multiple users can play at the same time without interfering with one another", false)
             .AddField("Commands", commands)
+            .AddField("Numbers", InfoNumbers())
             .AddField("Source code", "https://github.com/anotherdoesnm/SokobotNET")
             .WithFooter(footer => footer.Text = "Initially created in Java by PolyMars, ported to C# by doesnm");
 
         await ReplyAsync(embeds: new List<EmbedRequest> { embed.Build() });
+    }
+
+    /// <summary>Bot-wide counters; "no database" should still render something readable.</summary>
+    private static string InfoNumbers()
+    {
+        var storage = GameStore.Storage;
+        if (storage is null) return "no database — nothing is counted";
+
+        return $"{storage.GuildCount()} guilds · {storage.PlayerCount()} players · "
+            + $"{storage.TotalCleared()} levels cleared";
     }
 }

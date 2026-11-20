@@ -33,6 +33,8 @@ public static class Gameplay
             // to the next level in place. A new message per level buried the old one and
             // left stale arrows behind.
             int cleared = game.Level;
+            // Score before NextLevel() resets the move counter for the new board.
+            GameStore.Storage?.RecordClear(session.GuildId, session.UserId, cleared, game.Moves);
             await BoardMessage.Edit(channel, session, $"🎉 Level {cleared} complete");
             game.NextLevel();
             await BoardMessage.Edit(channel, session);
