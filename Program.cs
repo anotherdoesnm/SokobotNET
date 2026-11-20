@@ -33,6 +33,20 @@ public class Program
 
         await client.StartAsync();
 
+        // "in N guilds" has to mean every guild, not just the ones where someone typed a
+        // command, so follow the gateway's own guild events.
+        client.Gateway.GuildAvailable += async (guild) =>
+        {
+            try { GameStore.Storage?.RecordGuild(guild.Id); }
+            catch (Exception error) { Console.Error.WriteLine($"[sokobot] guild event failed: {error}"); }
+        };
+
+        client.Gateway.GuildJoined += async (guild) =>
+        {
+            try { GameStore.Storage?.RecordGuild(guild.Id); }
+            catch (Exception error) { Console.Error.WriteLine($"[sokobot] guild event failed: {error}"); }
+        };
+
         var commands = new CommandService();
         await commands.AddModulesAsync(Assembly.GetExecutingAssembly());
 
@@ -47,6 +61,8 @@ public class Program
                 // Stale gateway sessions deliver the same message more than once; answer once.
                 if (!Events.FirstMessage(data.Id))
                     return;
+
+                if (data.Guild?.Id is > 0) GameStore.Storage?.RecordGuild(data.Guild.Id);
 
                 var prefix = PrefixStore.Get(data.Guild?.Id ?? 0);
                 if (data.Content?.StartsWith(prefix) != true)

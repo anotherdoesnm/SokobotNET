@@ -36,6 +36,8 @@ https://<your instance>/oauth2/authorize?client_id=<bot id>&scope=bot&permission
 | `!prefix <chars>` | change the command prefix for this server, no argument resets it |
 | `!stop` | put the game aside — the level is saved |
 | `!new` | forget the saved game and start over from level 1 |
+| `!top` | per-guild leaderboard: furthest level first, lowest average moves breaks ties |
+| `!stats` | your best level, cleared count and average moves, with your place |
 | `!info` | about the bot and the real command list |
 | `!help` | does not |
 
