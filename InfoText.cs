@@ -16,7 +16,7 @@ public static class InfoText
             .AppendLine($"``{prefix}new`` forgets the saved game and starts over from level 1.")
             .AppendLine($"``{prefix}w`` ``{prefix}a`` ``{prefix}s`` ``{prefix}d`` move, and so do the arrows under the board.")
             .AppendLine($"``{prefix}prefix <chars>`` changes the command prefix here; without an argument it goes back to ``!``.")
-            .AppendLine($"``{prefix}top`` shows this server's leaderboard.")
+            .AppendLine($"``{prefix}top`` shows this community's leaderboard.")
             .AppendLine($"``{prefix}stats`` shows your best level, cleared levels and average moves.")
             .AppendLine($"``{prefix}info`` shows this.")
             .Append($"``{prefix}help`` does not.")

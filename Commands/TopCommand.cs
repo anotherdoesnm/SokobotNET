@@ -29,6 +29,7 @@ public class TopModule : ModuleBase
             return;
         }
 
+        var plays = storage.GuildPlayerCount(guildId);
         var lines = rows.Select((row, index) =>
             $"`{index + 1}.` <@{row.UserId}> — **L{row.BestLevel}** · "
             + $"{row.Cleared} cleared · {row.AverageMoves:0.0} moves/level");
@@ -38,7 +39,8 @@ public class TopModule : ModuleBase
             .WithDescription(string.Join('\n', lines))
             .WithColor(0xDD, 0x2E, 0x53)
             .WithFooter(footer => footer.Text =
-                $"furthest level first, then the lowest average · {storage.GuildPlayerCount(guildId)} players");
+                $"furthest level first, then the lowest average · "
+                + $"{plays} {InfoCommand.Plural(plays, "player", "players")}");
 
         await ReplyAsync(embeds: new List<EmbedRequest> { embed.Build() });
     }
