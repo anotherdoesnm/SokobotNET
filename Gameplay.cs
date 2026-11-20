@@ -13,6 +13,7 @@ public static class Gameplay
     public static async Task Move(Channel channel, Session session, int dx, int dy, ulong? moveMessageId = null)
     {
         var game = session.Game;
+        var prefix = session.Prefix;
 
         if (!game.TryMove(dx, dy, out bool won))
         {
@@ -34,12 +35,14 @@ public static class Gameplay
             int cleared = game.Level;
             await BoardMessage.Edit(channel, session, $"🎉 Level {cleared} complete");
             game.NextLevel();
-            await Task.Delay(LevelRolloverMs);
             await BoardMessage.Edit(channel, session);
         }
         else
         {
             await BoardMessage.Edit(channel, session);
         }
+
+        // Save after every move, win included: a restart of the bot must not cost a level.
+        GameStore.Storage?.SaveGame(session.UserId, game);
     }
 }

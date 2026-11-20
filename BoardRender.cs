@@ -9,9 +9,11 @@ using System.Collections.Generic;
 /// </summary>
 public static class BoardRender
 {
-    public const string Controls = "`!w` up · `!a` left · `!s` down · `!d` right";
+    /// <summary>The hint line under the board, spelled with this guild's prefix.</summary>
+    public static string Controls(string prefix) =>
+        $"`{prefix}w` up · `{prefix}a` left · `{prefix}s` down · `{prefix}d` right";
 
-    public static List<EmbedRequest> Build(Game game, string? note = null)
+    public static List<EmbedRequest> Build(Game game, string prefix, string? note = null)
     {
         var lines = game.ToString().Split('\n', System.StringSplitOptions.RemoveEmptyEntries);
         // The last line of ToString() is the "Level N • Moves M" caption: the title and
@@ -22,7 +24,7 @@ public static class BoardRender
             .WithTitle($"Level {game.Level}")
             .WithDescription(board)
             .WithColor(0xDD, 0x2E, 0x53)
-            .WithFooter(footer => footer.Text = note ?? $"Moves {game.Moves} · {Controls}");
+            .WithFooter(footer => footer.Text = note ?? $"Moves {game.Moves} · {Controls(prefix)}");
 
         return new List<EmbedRequest> { embed.Build() };
     }

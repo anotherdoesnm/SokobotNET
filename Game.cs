@@ -25,6 +25,19 @@ public class Game
         Generate();
     }
 
+    /// <summary>Rebuild a game from a stored board; <see cref="Deserialize"/> validates first.</summary>
+    private Game(int level, int moves, Cell[,] grid, List<(int x, int y)> boxes,
+        HashSet<(int x, int y)> targets, (int x, int y) player)
+    {
+        Level = level;
+        Moves = moves;
+        _grid = grid;
+        _boxes = boxes;
+        _targets = targets;
+        _player = player;
+        Finished = IsSolved();
+    }
+
     /// <summary>
     /// Attempt to move the player by (dx, dy). Returns true if the player actually moved;
     /// <paramref name="won"/> is set when the move completed the level.
@@ -265,6 +278,100 @@ public class Game
                 walls[x, y] = _grid[x, y] == Cell.Wall;
 
         return (walls, _boxes.ToArray(), _targets.ToArray(), _player);
+    }
+
+    /// <summary>
+    /// The board as text, one fact per line. Levels are generated randomly, so a saved
+    /// game cannot be re-created from a seed — the walls, the boxes and the targets have
+    /// to be stored as they are. Versioned, because the format may grow.
+    /// </summary>
+    public string Serialize()
+    {
+        var sb = new StringBuilder();
+        sb.Append("v1\n");
+        sb.Append($"{Level} {Moves} {_grid.GetLength(0)}\n");
+        for (int y = 0; y < _grid.GetLength(1); y++)
+        {
+            for (int x = 0; x < _grid.GetLength(0); x++)
+                sb.Append(_grid[x, y] == Cell.Wall ? '1' : '0');
+            sb.Append('\n');
+        }
+        sb.Append("boxes ").Append(FormatPoints(_boxes)).Append('\n');
+        sb.Append("targets ").Append(FormatPoints(_targets)).Append('\n');
+        sb.Append("player ").Append($"{_player.x},{_player.y}").Append('\n');
+        return sb.ToString();
+    }
+
+    /// <summary>Inverse of <see cref="Serialize"/>; throws <see cref="FormatException"/> on junk.</summary>
+    public static Game Deserialize(string text)
+    {
+        var lines = text.Replace("\r\n", "\n").Split('\n');
+        if (lines.Length < 5 || lines[0].Trim() != "v1")
+            throw new FormatException("not a saved sokoban game");
+
+        var head = lines[1].Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (head.Length != 3
+            || !int.TryParse(head[0], out int level)
+            || !int.TryParse(head[1], out int moves)
+            || !int.TryParse(head[2], out int size)
+            || size is < 3 or > 32 || level < 1 || moves < 0)
+        {
+            throw new FormatException("bad game header");
+        }
+
+        var grid = new Cell[size, size];
+        for (int y = 0; y < size; y++)
+        {
+            var row = lines[2 + y].Trim();
+            if (row.Length != size) throw new FormatException("bad wall row");
+            for (int x = 0; x < size; x++)
+                grid[x, y] = row[x] == '1' ? Cell.Wall : Cell.Floor;
+        }
+
+        var boxes = ParsePoints(lines[2 + size], "boxes", size);
+        var targets = ParsePoints(lines[3 + size], "targets", size);
+        var player = ParsePoint(lines[4 + size], "player", size);
+
+        if (boxes.Count == 0 || boxes.Count != targets.Count)
+            throw new FormatException("boxes and targets do not match");
+        if (grid[player.x, player.y] == Cell.Wall || boxes.Contains(player))
+            throw new FormatException("player is inside a wall or a box");
+
+        foreach (var box in boxes)
+            if (grid[box.x, box.y] == Cell.Wall) throw new FormatException("box inside a wall");
+
+        var targetSet = targets.ToHashSet();
+        foreach (var target in targetSet) grid[target.x, target.y] = Cell.Target;
+
+        return new Game(level, moves, grid, boxes, targetSet, player);
+    }
+
+    private static string FormatPoints(IEnumerable<(int x, int y)> points) =>
+        string.Join(' ', points.Select(p => $"{p.x},{p.y}"));
+
+    private static List<(int x, int y)> ParsePoints(string line, string label, int size)
+    {
+        var trimmed = line.Trim();
+        if (!trimmed.StartsWith(label + " ", StringComparison.Ordinal))
+            throw new FormatException($"expected {label}");
+        var rest = trimmed[(label.Length + 1)..];
+        if (string.IsNullOrWhiteSpace(rest)) return new List<(int x, int y)>();
+        return rest.Split(' ', StringSplitOptions.RemoveEmptyEntries)
+            .Select(p => ParsePoint(p, label, size))
+            .ToList();
+    }
+
+    private static (int x, int y) ParsePoint(string text, string label, int size)
+    {
+        var parts = text.Split(',');
+        if (parts.Length != 2
+            || !int.TryParse(parts[0], out int x)
+            || !int.TryParse(parts[1], out int y)
+            || x < 0 || y < 0 || x >= size || y >= size)
+        {
+            throw new FormatException($"bad {label} point");
+        }
+        return (x, y);
     }
 
     public override string ToString()

@@ -19,7 +19,7 @@ public static class BoardMessage
     /// <summary>Post a fresh board and attach the reaction controls to it.</summary>
     public static async Task Send(Channel channel, Session session, string? note = null)
     {
-        var message = await channel.SendMessageAsync(embeds: BoardRender.Build(session.Game, note));
+        var message = await channel.SendMessageAsync(embeds: BoardRender.Build(session.Game, session.Prefix, note));
         session.ChannelId = channel.Id;
         session.MessageId = message.Id;
 
@@ -41,7 +41,7 @@ public static class BoardMessage
 
         try
         {
-            await channel.EditMessageAsync(session.MessageId, embeds: BoardRender.Build(session.Game, note));
+            await channel.EditMessageAsync(session.MessageId, embeds: BoardRender.Build(session.Game, session.Prefix, note));
         }
         catch
         {

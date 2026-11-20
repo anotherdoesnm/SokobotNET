@@ -23,7 +23,8 @@ public class MoveModule : ModuleBase
     {
         if (!GameStore.Games.TryGetValue(Context.User.Id, out var session))
         {
-            await ReplyAsync("No active game. Use `!play` to start one.");
+            var prefix = PrefixStore.Get(Context.Guild?.Id ?? 0);
+            await ReplyAsync($"No active game. Use `{prefix}play` to start one.");
             return;
         }
 

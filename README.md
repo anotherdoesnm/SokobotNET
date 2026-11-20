@@ -34,7 +34,8 @@ https://<your instance>/oauth2/authorize?client_id=<bot id>&scope=bot&permission
 | `!board` | re-post the board |
 | `!restart` | same level, new layout — the escape hatch when a box is stuck |
 | `!prefix <chars>` | change the command prefix for this server, no argument resets it |
-| `!stop` | stop the game |
+| `!stop` | put the game aside — the level is saved |
+| `!new` | forget the saved game and start over from level 1 |
 | `!info` | about the bot and the real command list |
 | `!help` | does not |
 
@@ -44,7 +45,7 @@ https://<your instance>/oauth2/authorize?client_id=<bot id>&scope=bot&permission
 |---|---|
 | `FLUXER_TOKEN` | bot token, `id.secret` (required) |
 | `FLUXER_INSTANCE` | API root of a self-hosted instance; unset means fluxer.app |
-| `SOKOBOT_DB` | SQLite file for per-guild prefixes, default `sokobot.db` (the image uses `/data/sokobot.db`) |
+| `SOKOBOT_DB` | SQLite file for per-guild prefixes and saved games, default `sokobot.db` (the image uses `/data/sokobot.db`) |
 
 ## Run
 
@@ -54,7 +55,7 @@ docker build -t sokobot .
 docker run --rm -e FLUXER_TOKEN=... -v sokobot-data:/data sokobot
 ```
 
-`/data` holds one SQLite file: per-guild prefixes. Mount a volume or they reset with
+`/data` holds one SQLite file: per-guild prefixes and the players' saved boards. Mount a volume or they reset with
 the container.
 
 ## Tests

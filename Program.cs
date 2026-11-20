@@ -22,6 +22,7 @@ public class Program
         // the gateway, and it makes the file path visible in the log.
         var storage = new Storage();
         PrefixStore.Initialize(storage);
+        GameStore.Storage = storage;
         Console.WriteLine($"[sokobot] state file: {storage.FilePath}");
 
         var client = new FluxerClient($"Bot {token}");
