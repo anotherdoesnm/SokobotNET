@@ -20,7 +20,8 @@ public class PrefixModule : ModuleBase
 
         if (!PrefixStore.IsValid(value))
         {
-            await ReplyAsync("Prefix must be 1-3 characters with no spaces. Example: `!prefix ?`");
+            var current = PrefixStore.Get(guildId);
+            await ReplyAsync($"Prefix must be 1-3 characters with no spaces. Example: `{current}prefix ?`");
             return;
         }
 
