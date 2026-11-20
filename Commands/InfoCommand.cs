@@ -35,13 +35,23 @@ public class InfoCommand : ModuleBase
         await ReplyAsync(embeds: new List<EmbedRequest> { embed.Build() });
     }
 
-    /// <summary>Bot-wide counters; "no database" should still render something readable.</summary>
+    /// <summary>
+    /// Bot-wide counters; "no database" should still render something readable. Fluxer
+    /// calls these groups communities, so the numbers do too.
+    /// </summary>
     private static string InfoNumbers()
     {
         var storage = GameStore.Storage;
         if (storage is null) return "no database — nothing is counted";
 
-        return $"{storage.GuildCount()} guilds · {storage.PlayerCount()} players · "
-            + $"{storage.TotalCleared()} levels cleared";
+        var communities = storage.GuildCount();
+        var players = storage.PlayerCount();
+        var cleared = storage.TotalCleared();
+
+        return $"{communities} {Plural(communities, "community", "communities")} · "
+            + $"{players} {Plural(players, "player", "players")} · "
+            + $"{cleared} {Plural(cleared, "level", "levels")} cleared";
     }
+
+    internal static string Plural(long count, string one, string many) => count == 1 ? one : many;
 }

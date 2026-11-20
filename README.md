@@ -4,7 +4,7 @@ A Sokoban bot for Fluxer: `!play` drops a board into the channel, arrow reaction
 `!w`/`!a`/`!s`/`!d` move the player, and every move edits the same message instead of
 posting a new one. Ported from PolyMars' Java bot, rewritten in C# on .NET 9.
 
-## Adding it to a server
+## Adding it to a community
 
 A hosted copy runs on fluxer.com — invite it with:
 
@@ -33,7 +33,7 @@ https://<your instance>/oauth2/authorize?client_id=<bot id>&scope=bot&permission
 | ⬆️ ⬅️ ⬇️ ➡️ | move by reacting to the board |
 | `!board` | re-post the board |
 | `!restart` | same level, new layout — the escape hatch when a box is stuck |
-| `!prefix <chars>` | change the command prefix for this server, no argument resets it |
+| `!prefix <chars>` | change the command prefix for this community, no argument resets it |
 | `!stop` | put the game aside — the level is saved |
 | `!new` | forget the saved game and start over from level 1 |
 | `!top` | per-guild leaderboard: furthest level first, lowest average moves breaks ties |
@@ -57,7 +57,7 @@ docker build -t sokobot .
 docker run --rm -e FLUXER_TOKEN=... -v sokobot-data:/data sokobot
 ```
 
-`/data` holds one SQLite file: per-guild prefixes and the players' saved boards. Mount a volume or they reset with
+`/data` holds one SQLite file: per-community prefixes and the players' saved boards. Mount a volume or they reset with
 the container.
 
 ## Tests

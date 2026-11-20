@@ -9,6 +9,7 @@ public class InfoTextTests
         Assert.Contains("?play", text);
         Assert.Contains("?restart", text);
         Assert.Contains("?prefix", text);
+        Assert.Contains("community's leaderboard", text);
         Assert.DoesNotContain("!play", text);
     }
 
