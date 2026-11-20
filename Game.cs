@@ -330,7 +330,7 @@ public class Game
 
         var boxes = ParsePoints(lines[2 + size], "boxes", size);
         var targets = ParsePoints(lines[3 + size], "targets", size);
-        var player = ParsePoint(lines[4 + size], "player", size);
+        var player = ParseLabeledPoint(lines[4 + size], "player", size);
 
         if (boxes.Count == 0 || boxes.Count != targets.Count)
             throw new FormatException("boxes and targets do not match");
@@ -359,6 +359,14 @@ public class Game
         return rest.Split(' ', StringSplitOptions.RemoveEmptyEntries)
             .Select(p => ParsePoint(p, label, size))
             .ToList();
+    }
+
+    private static (int x, int y) ParseLabeledPoint(string line, string label, int size)
+    {
+        var trimmed = line.Trim();
+        if (!trimmed.StartsWith(label + " ", StringComparison.Ordinal))
+            throw new FormatException($"expected {label}");
+        return ParsePoint(trimmed[(label.Length + 1)..], label, size);
     }
 
     private static (int x, int y) ParsePoint(string text, string label, int size)
